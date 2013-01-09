@@ -1,4 +1,10 @@
 ---
+<%
+service = "echo"
+gateway = eval("properties.#{service}_gateway")
+plan_enabled = properties.service_plans && properties.service_plans.send(service.to_sym)
+plan_mgmt = plan_enabled && properties.service_plans.send(service.to_sym)
+%>
 cloud_controller_uri: <%= properties.cc.srv_api_uri %>
 mbus: nats://<%= properties.nats.user %>:<%= properties.nats.password %>@<%= properties.nats.address %>:<%= properties.nats.port %>
 index: <%= spec.index %>
@@ -6,7 +12,17 @@ service:
   name: echo
   version: "1.0"
   description: 'Echo Service'
-  plans: ['free']
+  plans:
+  <% if plan_enabled %>
+    <% for plan in plan_mgmt.fields.each %>
+      <% plan_description = plan_mgmt.send(plan.to_sym).description || "#{plan} plan" %>
+      <%= "'#{plan}': '#{plan_description}'" %>
+    <% end %>
+  <% else %>
+    "free": "free plan"
+  <% end %>
+  default_plan: '<%= gateway.default_plan || 'free' %>'
+  timeout: <%= properties.echo_gateway.service_timeout || 10 %>
   tags: ['echo', 'echo-1.0', 'demo', 'echobased']
   supported_versions: ['1.0']
   version_aliases:
@@ -18,4 +34,4 @@ token: <%= properties.echo_gateway.token %>
 logging:
   level: debug
 pid: /var/vcap/sys/run/echo_gateway/echo_gateway.pid
-node_timeout: 2
+node_timeout: <%= gateway.node_timeout || 8 %>

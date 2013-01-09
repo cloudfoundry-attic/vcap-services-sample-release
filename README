@@ -19,37 +19,63 @@ the section below will walk you through how to deploy echo service into Cloud Fo
 3. cp -r vcap-services-sample-release/jobs/* cf-release/jobs/
    cp -r vcap-services-sample-release/packages/* cf-release/packages/
 4. append the content of vcap-services-sample-release/config/blobs_echo.yml to cf-release/config/blobs.yml
-5. add 'echo' into 'builtin_services' section of cloud controller configuration file - see https://github.com/cloudfoundry/cf-release/blob/master/jobs/cloud_controller/templates/cloud_controller.yml.erb#L163
+5. add 'echo' into 'builtin_services' section of cloud controller configuration file - see https://github.com/cloudfoundry/cf-release/blob/master/jobs/cloud_controller/templates/cloud_controller.yml.erb#L161 . An simpler alternative way to achieve this is for CC to get the token from external_service_tokens - see https://github.com/cloudfoundry/cf-release/blob/master/jobs/cloud_controller/templates/cloud_controller.yml.erb#L174-L179. Add 'external_service_tokens' under 'properties' section like this:
+
+      external_service_tokens:
+        oauth2: foooauth2token
+
 6. bosh create release and then bosh upload release
-7. in your BOSH deployment manifest, add below section under 'jobs', for example insert into https://github.com/cloudfoundry/oss-docs/blob/master/bosh/samples/cloudfoundry.yml#L324
+7. in your BOSH deployment manifest, add below section under 'jobs', for example insert into https://github.com/cloudfoundry/oss-docs/blob/master/bosh/samples/cloudfoundry.yml#L294
 
-	- name: echo_node
-	  template: echo_node
-	  instances: 1
-	  resource_pool: infrastructure
-	  persistent_disk: 128
-	  networks:
-	  - name: default
-	    static_ips:
-	    - 192.0.2.90
+    - name: echo_node
+      template: echo_node
+      instances: 1
+      resource_pool: infrastructure
+      persistent_disk: 128
+      networks:
+      - name: default
+        static_ips:
+        - 192.0.2.90
 
-	- name: echo_gateway
-	  template: echo_gateway
-	  instances: 1
-	  resource_pool: infrastructure
-	  networks:
-	  - name: default
+    - name: echo_gateway
+      template: echo_gateway
+      instances: 1
+      resource_pool: infrastructure
+      networks:
+      - name: default
 
-   and add gateway token under 'properties', for example insert into https://github.com/cloudfoundry/oss-docs/blob/master/bosh/samples/cloudfoundry.yml#L475
+   and add gateway token under 'properties', for example insert into https://github.com/cloudfoundry/oss-docs/blob/master/bosh/samples/cloudfoundry.yml#L632
 
-	echo_gateway:
-	  token: changeme
-	echoserver:
-	  port: 8080
+    echo_gateway:
+      token: changeechotoken
+      service_timeout: 15
+      node_timeout: 10
+    echoserver:
+      port: 5002
 
    and change resource pool size if necessary, see https://github.com/cloudfoundry/oss-docs/blob/master/bosh/samples/cloudfoundry.yml#L55
 
 8. bosh deploy
+
+== Deploy echo service under ccng
+
+Deploying echo service under ccng is the same as that under legacy CC.
+The difference is that to make echo service available, some additional
+steps are necessary. To achieve that, you should use the high version
+vmc and the vmc admin plugin:
+
+    gem install vmc --pre
+    gem install admin-vmc-plugin
+
+login as the cc administator:
+
+    vmc login $ADMIN_USER --password $ADMIN_PASSWORD
+    vmc create-service-auth-token --provider core --token changeechotoken --label echo
+
+$ADMIN_USER and $ADMIN_PASSWORD could be found in your bosh deployment
+manifest under section 'uaa.scim.users'. It may take several minutes
+before it takes effect. Issue `vmc info --services` to make sure that
+echo service is available.
 
 == License
 

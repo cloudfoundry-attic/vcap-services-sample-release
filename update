@@ -1,0 +1,19 @@
+#!/bin/bash -x
+
+git pull && git submodule update --init
+
+cp imports/cf-release/config/blobs.yml config/blobs.yml
+cat config/echoserver_blobs.yml >> config/blobs.yml
+cp imports/cf-release/config/final.yml config/
+
+srcs=( common pkg_utils syslog_aggregator )
+for i in "${srcs[@]}"
+do
+  cp -r imports/cf-release/src/$i src/
+done
+
+pkgs=( common dea_jvm ruby sqlite syslog_aggregator )
+for i in "${pkgs[@]}"
+do
+  cp -r imports/cf-release/packages/$i packages/
+done

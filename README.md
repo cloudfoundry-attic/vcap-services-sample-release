@@ -114,7 +114,6 @@ vmc and the vmc admin plugin:
 
     gem install vmc --pre
     gem install admin-vmc-plugin
-    touch ~/.vmc/use-ng
 
 login as the cc administator:
 
